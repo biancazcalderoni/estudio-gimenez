@@ -357,6 +357,13 @@
         { id: 3, cliente: 'Mariana Fernández', caso: 'Denuncia Fernández', monto: 35000, estado: 'cobrado', fecha: '2026-11-01', descripcion: 'Asesoramiento penal' },
         { id: 4, cliente: 'Roberto García Pérez', caso: 'García vs. López', monto: 25000, estado: 'pendiente', fecha: '2026-11-25', descripcion: 'Honorarios - Segunda cuota' },
         { id: 5, cliente: 'Empresa López SRL', caso: 'Contrato Incumplido', monto: 75000, estado: 'cobrado', fecha: '2026-11-10', descripcion: 'Asesoramiento general' }
+      ],
+      documentos: [
+        { id: 1, caseId: 1, name: 'Demanda García vs López.pdf', type: 'PDF', url: 'https://via.placeholder.com/150?text=PDF', fecha: '2026-10-20', tamaño: '2.3 MB' },
+        { id: 2, caseId: 1, name: 'Prueba fotográfica 01.jpg', type: 'JPG', url: 'https://via.placeholder.com/800x600?text=Prueba+1', fecha: '2026-10-22', tamaño: '1.5 MB' },
+        { id: 3, caseId: 2, name: 'Contrato incumplido.pdf', type: 'PDF', url: 'https://via.placeholder.com/150?text=PDF', fecha: '2026-11-15', tamaño: '890 KB' },
+        { id: 4, caseId: 3, name: 'Denuncia formal.pdf', type: 'PDF', url: 'https://via.placeholder.com/150?text=PDF', fecha: '2026-10-30', tamaño: '1.1 MB' },
+        { id: 5, caseId: 1, name: 'Respuesta de la otra parte.pdf', type: 'PDF', url: 'https://via.placeholder.com/150?text=PDF', fecha: '2026-11-05', tamaño: '756 KB' }
       ]
     };
 
@@ -389,6 +396,7 @@
       documentGenerating: null,
       formData: {},
       configDialog: false,
+      documentViewer: null,
       apiKey: localStorage.getItem('anthropic_api_key') || ''
     };
 
@@ -496,12 +504,18 @@
         ${state.newLegalDocDialog ? renderNewLegalDocDialog() : ''}
         ${state.configDialog ? renderConfigDialog() : ''}
         ${state.monthlyReportDialog ? renderMonthlyReportDialog() : ''}
+        ${state.documentViewer ? renderDocumentViewer() : ''}
       `;
     }
 
     function renderDashboard() {
       const proximaCita = mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha))[0];
       const fechaFormato = new Date(proximaCita.fecha).toLocaleDateString('es-AR', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
+
+      const totalCobrado = mockData.finanzas.filter(f => f.estado === 'cobrado').reduce((sum, f) => sum + f.monto, 0);
+      const totalPendiente = mockData.finanzas.filter(f => f.estado === 'pendiente').reduce((sum, f) => sum + f.monto, 0);
+      const tareasActivas = mockData.tareas.filter(t => t.estado !== 'completada').length;
+      const expedienteTotal = mockData.expedientes.length;
 
       return `
         <div style="margin-bottom: 24px;">
@@ -527,17 +541,24 @@
           </div>
         </div>
 
-        <div class="grid">
-          <div class="card"><div class="card-title">Casos Activos</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">8</div></div>
-          <div class="card"><div class="card-title">Clientes</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">12</div></div>
-          <div class="card"><div class="card-title">Próximas Audiencias</div><div style="font-size: 32px; font-weight: 700; color: #3498db; margin: 12px 0;">3</div></div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div class="card"><div class="card-title">📋 Casos Activos</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${mockData.casos.length}</div></div>
+          <div class="card"><div class="card-title">👥 Clientes</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${mockData.clientes.length}</div></div>
+          <div class="card"><div class="card-title">📋 Expedientes</div><div style="font-size: 32px; font-weight: 700; color: #3498db; margin: 12px 0;">${expedienteTotal}</div></div>
+          <div class="card"><div class="card-title">✅ Tareas Pendientes</div><div style="font-size: 32px; font-weight: 700; color: #e74c3c; margin: 12px 0;">${tareasActivas}</div></div>
+          <div class="card"><div class="card-title">💚 Cobrado</div><div style="font-size: 32px; font-weight: 700; color: #27ae60; margin: 12px 0;">$${totalCobrado.toLocaleString()}</div></div>
+          <div class="card"><div class="card-title">⏳ Pendiente</div><div style="font-size: 32px; font-weight: 700; color: #e74c3c; margin: 12px 0;">$${totalPendiente.toLocaleString()}</div></div>
         </div>
-        <table class="table">
-          <thead><tr><th>Caso</th><th>Cliente</th><th>Tipo</th><th>Estado</th></tr></thead>
-          <tbody>
-            ${mockData.casos.slice(0, 3).map(c => `<tr onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><td style="font-weight: 600;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : 'pending'}">${c.estado}</span></td></tr>`).join('')}
-          </tbody>
-        </table>
+
+        <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #2c5aa0;">📌 Próximos Movimientos</h3>
+          <table class="table">
+            <thead><tr><th>Caso</th><th>Cliente</th><th>Tipo</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${mockData.casos.slice(0, 3).map(c => `<tr onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><td style="font-weight: 600; cursor: pointer;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : 'pending'}">${c.estado}</span></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
       `;
     }
 
@@ -947,15 +968,40 @@
               </div>
             </div>
 
-            <!-- DERECHA: PREVIEW DEL DOCUMENTO -->
+            <!-- DERECHA: DOCUMENTOS Y PREVIEW -->
             <div style="display: flex; flex-direction: column; padding: 24px; overflow-y: auto; background: #f8f9fa;">
-              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 16px 0; color: #2c5aa0; font-size: 14px;">📁 Documentos del Caso</h3>
+              ${(() => {
+                const caseDocs = mockData.documentos.filter(d => d.caseId === c.id);
+                return caseDocs.length > 0 ? `
+                  <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 20px;">
+                    ${caseDocs.map(doc => `
+                      <div onclick="setState({documentViewer: {name: '${doc.name}', type: '${doc.type}', url: '${doc.url}'}})" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border-radius: 6px; cursor: pointer; border: 1px solid #e0e0e0; transition: all 0.2s;">
+                        <div style="font-size: 20px;">
+                          ${doc.type === 'PDF' ? '📄' : doc.type === 'JPG' ? '🖼️' : '📋'}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="font-size: 12px; font-weight: 600; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc.name}</div>
+                          <div style="font-size: 10px; color: #7f8c8d;">${doc.tamaño}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div style="text-align: center; color: #7f8c8d; padding: 20px; background: white; border-radius: 6px; margin-bottom: 20px; font-size: 12px;">
+                    Sin documentos adjuntos
+                  </div>
+                `;
+              })()}
+
+              <h3 style="margin: 20px 0 16px 0; color: #2c5aa0; font-size: 14px;">✍️ Generar Documentos</h3>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
                 ${c.fuero === 'penal' ? `
-                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'querella'})" style="flex: 1; padding: 10px; font-size: 12px;">🚨 Querella</button>
-                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'acusacion'})" style="flex: 1; padding: 10px; font-size: 12px;">⚖️ Acusación</button>
+                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'querella'})" style="width: 100%; padding: 10px; font-size: 12px;">🚨 Querella</button>
+                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'acusacion'})" style="width: 100%; padding: 10px; font-size: 12px;">⚖️ Acusación</button>
                 ` : c.fuero === 'administrativo' ? `
-                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'accionadmin'})" style="flex: 1; padding: 10px; font-size: 12px;">📋 Acción Admin</button>
-                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'defensa'})" style="flex: 1; padding: 10px; font-size: 12px;">📄 Escrito Defensa</button>
+                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'accionadmin'})" style="width: 100%; padding: 10px; font-size: 12px;">📋 Acción Admin</button>
+                  <button class="btn btn-secondary" onclick="setState({documentGenerating: 'defensa'})" style="width: 100%; padding: 10px; font-size: 12px;">📄 Escrito Defensa</button>
                 ` : `
                   <button class="btn btn-secondary" onclick="setState({documentGenerating: 'demanda'})" style="flex: 1; padding: 10px; font-size: 12px;">📝 Demanda</button>
                   <button class="btn btn-secondary" onclick="setState({documentGenerating: 'contestacion'})" style="flex: 1; padding: 10px; font-size: 12px;">📋 Contestación</button>
@@ -1695,6 +1741,36 @@
             <div style="display: flex; gap: 12px;">
               <button class="btn btn-primary" onclick="setState({newLegalDocDialog: false}); alert('✅ Documento agregado a la base de datos legal')" style="flex: 1; padding: 12px;">📚 Agregar a Base Legal</button>
               <button class="btn btn-secondary" onclick="setState({newLegalDocDialog: false})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDocumentViewer() {
+      const doc = state.documentViewer;
+      const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(doc.type?.toLowerCase() || '');
+      const isPdf = doc.type?.toLowerCase() === 'pdf';
+
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({documentViewer: null})" style="z-index: 10000;">
+          <div class="modal-content" style="width: 90%; height: 90%; max-width: 1200px; padding: 0; display: flex; flex-direction: column; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #2c5aa0; color: white; border-radius: 12px 12px 0 0;">
+              <h2 style="margin: 0; font-size: 20px; font-weight: 700;">📄 ${doc.name}</h2>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 12px; opacity: 0.8;">${doc.type}</span>
+                <button class="btn btn-secondary" onclick="const a=document.createElement('a'); a.href='${doc.url}'; a.download='${doc.name}'; a.click();" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 6px; cursor: pointer;">⬇️ Descargar</button>
+                <button class="btn btn-secondary" onclick="setState({documentViewer: null})" style="padding: 8px 16px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 18px;">✕</button>
+              </div>
+            </div>
+            <div style="flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; background: #f5f5f5;">
+              ${isImage ? `<img src="${doc.url}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="${doc.name}">` :
+                isPdf ? `<iframe src="${doc.url}#toolbar=0&navpanes=0&scrollbar=1" style="width: 100%; height: 100%; border: none;"></iframe>` :
+                `<div style="text-align: center; color: #7f8c8d; padding: 40px;">
+                  <div style="font-size: 48px; margin-bottom: 20px;">📄</div>
+                  <div style="font-size: 16px; margin-bottom: 20px;">No se puede previsualizar este tipo de archivo</div>
+                  <button class="btn btn-primary" onclick="const a=document.createElement('a'); a.href='${doc.url}'; a.download='${doc.name}'; a.click();">Descargar archivo</button>
+                </div>`}
             </div>
           </div>
         </div>
