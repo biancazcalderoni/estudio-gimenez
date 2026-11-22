@@ -1,0 +1,14 @@
+{
+  "name": "estudio-gimenez",
+  "version": "1.0.0",
+  "description": "Sistema CRM Legal para Estudio Jurídico Giménez",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env production"
+  },
+  "devDependencies": {
+    "wrangler": "^4.166.0"
+  }
+}
