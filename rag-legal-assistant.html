@@ -1,0 +1,489 @@
+<title>Base de Conocimiento Legal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  :root {
+    --bg: #fafaf8;
+    --fg: #1a1a1a;
+    --border: #e8e6e1;
+    --accent: #4a90e2;
+    --accent-light: #f0f4fa;
+    --bg-secondary: #fff;
+    --text-secondary: #666;
+    --success: #2ecc71;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1a1a;
+      --fg: #f5f5f5;
+      --border: #333;
+      --accent: #64b5f6;
+      --accent-light: #1a237e;
+      --bg-secondary: #252525;
+      --text-secondary: #aaa;
+      --success: #4db8a8;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --fg: #f5f5f5;
+    --border: #333;
+    --accent: #64b5f6;
+    --accent-light: #1a237e;
+    --bg-secondary: #252525;
+    --text-secondary: #aaa;
+    --success: #4db8a8;
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    min-height: 100vh;
+    padding: 20px 0;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .panel h2 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+  }
+
+  .document-input {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+  }
+
+  textarea::placeholder {
+    color: var(--text-secondary);
+  }
+
+  button {
+    padding: 10px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.2s;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  button:active {
+    opacity: 0.8;
+  }
+
+  .document-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .doc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--accent-light);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .doc-item button {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  .doc-item button:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 100vh;
+  }
+
+  .messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+
+  .message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+
+  .message.user {
+    background: var(--accent);
+    color: white;
+    margin-left: auto;
+    max-width: 85%;
+  }
+
+  .message.assistant {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    max-width: 85%;
+  }
+
+  .message.error {
+    background: #fee;
+    color: #c00;
+    border: 1px solid #fcc;
+  }
+
+  .message.info {
+    background: var(--accent-light);
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .input-area {
+    display: flex;
+    gap: 10px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--fg);
+    font-size: 14px;
+  }
+
+  input[type="text"]::placeholder {
+    color: var(--text-secondary);
+  }
+
+  .input-area button {
+    padding: 12px 24px;
+  }
+
+  .loading {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 50%;
+    animation: pulse 1.4s infinite;
+    margin-left: 4px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .stat {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .stat-value {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .message.user,
+    .message.assistant {
+      max-width: 100%;
+    }
+
+    .sidebar {
+      order: 2;
+    }
+
+    .chat-container {
+      order: 1;
+    }
+  }
+</style>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="panel">
+      <h2>📚 Documentos</h2>
+      <div class="document-input">
+        <textarea id="docInput" placeholder="Pega aquí el contenido de los PDFs, plantillas o guías..."></textarea>
+        <button onclick="addDocument()">Cargar Documento</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Documentos Cargados</h2>
+      <div class="document-list" id="docList">
+        <p style="color: var(--text-secondary); font-size: 13px;">Sin documentos aún</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>📊 Estadísticas</h2>
+      <div class="stats">
+        <div class="stat">
+          <span>Documentos:</span>
+          <span class="stat-value" id="docCount">0</span>
+        </div>
+        <div class="stat">
+          <span>Palabras:</span>
+          <span class="stat-value" id="wordCount">0</span>
+        </div>
+        <div class="stat">
+          <span>Caracteres:</span>
+          <span class="stat-value" id="charCount">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-container">
+    <div class="messages" id="messages"></div>
+
+    <div class="input-area">
+      <input
+        type="text"
+        id="questionInput"
+        placeholder="Haz una pregunta sobre los documentos..."
+        onkeypress="handleKeyPress(event)"
+      >
+      <button onclick="askQuestion()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let documents = [];
+  let isLoading = false;
+
+  function addDocument() {
+    const textarea = document.getElementById('docInput');
+    const content = textarea.value.trim();
+
+    if (!content) {
+      showMessage('error', 'Por favor, pega contenido primero');
+      return;
+    }
+
+    const doc = {
+      id: Date.now(),
+      title: `Doc ${documents.length + 1}`,
+      content: content,
+      wordCount: content.split(/\s+/).length
+    };
+
+    documents.push(doc);
+    textarea.value = '';
+
+    updateDocList();
+    updateStats();
+    showMessage('info', `✅ Documento cargado (${doc.wordCount} palabras)`);
+  }
+
+  function removeDocument(id) {
+    documents = documents.filter(d => d.id !== id);
+    updateDocList();
+    updateStats();
+    showMessage('info', 'Documento eliminado');
+  }
+
+  function updateDocList() {
+    const list = document.getElementById('docList');
+
+    if (documents.length === 0) {
+      list.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">Sin documentos aún</p>';
+      return;
+    }
+
+    list.innerHTML = documents.map(doc => `
+      <div class="doc-item">
+        <span>${doc.title} • ${doc.wordCount} palabras</span>
+        <button onclick="removeDocument(${doc.id})">Eliminar</button>
+      </div>
+    `).join('');
+  }
+
+  function updateStats() {
+    const totalWords = documents.reduce((sum, d) => sum + d.wordCount, 0);
+    const totalChars = documents.reduce((sum, d) => sum + d.content.length, 0);
+
+    document.getElementById('docCount').textContent = documents.length;
+    document.getElementById('wordCount').textContent = totalWords.toLocaleString();
+    document.getElementById('charCount').textContent = totalChars.toLocaleString();
+  }
+
+  function showMessage(role, text) {
+    const messagesDiv = document.getElementById('messages');
+    const messageEl = document.createElement('div');
+    messageEl.className = `message ${role}`;
+    messageEl.textContent = text;
+    messagesDiv.appendChild(messageEl);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  function askQuestion() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+
+    if (!question) return;
+    if (isLoading) return;
+    if (documents.length === 0) {
+      showMessage('error', '⚠️ Carga documentos primero');
+      return;
+    }
+
+    showMessage('user', question);
+    input.value = '';
+    isLoading = true;
+
+    // Buscar en documentos
+    setTimeout(() => {
+      const answer = searchDocuments(question);
+      showMessage('assistant', answer);
+      isLoading = false;
+    }, 500);
+  }
+
+  function searchDocuments(question) {
+    const keywords = question.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (let doc of documents) {
+      const docLower = doc.content.toLowerCase();
+      let score = 0;
+
+      for (let keyword of keywords) {
+        const regex = new RegExp(keyword, 'g');
+        const matches = (docLower.match(regex) || []).length;
+        score += matches;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = doc;
+      }
+    }
+
+    if (!bestMatch || bestScore === 0) {
+      return 'No encontré información relevante en los documentos. Intenta con otros términos.';
+    }
+
+    // Extraer fragmento relevante
+    const docLower = bestMatch.content.toLowerCase();
+    const qLower = question.toLowerCase();
+    const index = docLower.indexOf(qLower) !== -1
+      ? docLower.indexOf(qLower)
+      : docLower.indexOf(keywords[0]);
+
+    if (index !== -1) {
+      let start = Math.max(0, index - 100);
+      let end = Math.min(bestMatch.content.length, index + 300);
+
+      let excerpt = bestMatch.content.substring(start, end).trim();
+      if (start > 0) excerpt = '...' + excerpt;
+      if (end < bestMatch.content.length) excerpt = excerpt + '...';
+
+      return `📄 Encontré esto en tus documentos:\n\n"${excerpt}"\n\n💡 Para respuestas más precisas, considera conectar una API de Claude.`;
+    }
+
+    return 'Encontré referencias relacionadas pero la información es limitada. Conecta una API de Claude para análisis completo.';
+  }
+
+  function handleKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      askQuestion();
+    }
+  }
+
+  // Mensaje inicial
+  window.addEventListener('load', () => {
+    showMessage('info', '👋 Bienvenido. Carga documentos a la izquierda y haz preguntas sobre ellos.');
+  });
+</script>
