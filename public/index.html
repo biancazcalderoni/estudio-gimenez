@@ -318,6 +318,11 @@
         { id: 7, titulo: 'Ley de Sociedades Comerciales N° 19.550', categoria: 'ley comercial', año: 1972, vigente: true },
         { id: 8, titulo: 'Ley de Quiebras y Concursos N° 24.522', categoria: 'ley comercial', año: 1995, vigente: true }
       ],
+      plantillas: [
+        { id: 1, nombre: 'Plantilla Demanda Incumplimiento', tipo: 'demanda', descripción: 'Template para demandas por incumplimiento de contrato', archivo: 'Plantilla_Demanda_Incumplimiento.docx' },
+        { id: 2, nombre: 'Plantilla Contestación Defensa', tipo: 'contestación', descripción: 'Template para contestación de demandas', archivo: 'Plantilla_Contestacion_Defensa.docx' },
+        { id: 3, nombre: 'Contrato Prestación de Servicios', tipo: 'contrato', descripción: 'Template contrato de prestación de servicios profesionales', archivo: 'Contrato_prestacion_servicios_profesionales.docx' }
+      ],
       expedientes: [
         {
           id: 1,
@@ -953,6 +958,7 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;">
+              <div style="font-weight: 600; color: #d4af37; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;">Leyes y Códigos</div>
               ${state.data.baseLegal.map((doc, i) => `
                 <div style="padding: 12px; background: ${i === 0 ? '#e8f4f8' : '#f8f9fa'}; border-radius: 6px; border-left: 3px solid ${i === 0 ? '#2c5aa0' : '#d4af37'}; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e8f4f8'" onmouseout="this.style.background='${i === 0 ? '#e8f4f8' : '#f8f9fa'}'">
                   <div style="font-weight: 600; font-size: 12px; color: #2c3e50; margin-bottom: 4px;">${doc.titulo}</div>
@@ -962,6 +968,17 @@
                   ${doc.articulos ? `<div style="font-size: 10px; color: #95a5a6; margin-top: 4px;">${doc.articulos} artículos</div>` : ''}
                 </div>
               `).join('')}
+
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
+                <div style="font-weight: 600; color: #d4af37; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Plantillas Disponibles</div>
+                ${state.data.plantillas.map(p => `
+                  <div style="padding: 12px; background: #fff8e8; border-radius: 6px; border-left: 3px solid #d4af37; margin-bottom: 8px; cursor: pointer;" onclick="alert('Plantilla: ${p.nombre}\\n\\nArchivo: ${p.archivo}\\n\\nDescripción: ${p.descripción}\\n\\nPara usar esta plantilla en un caso, selecciona el caso y usa el botón Generar Demanda/Contrato con esta plantilla como referencia.')">
+                    <div style="font-weight: 600; font-size: 12px; color: #2c3e50;">${p.nombre}</div>
+                    <div style="font-size: 10px; color: #7f8c8d; margin-top: 2px;">${p.descripción}</div>
+                    <div style="font-size: 10px; color: #95a5a6; margin-top: 4px;">Archivo: ${p.archivo}</div>
+                  </div>
+                `).join('')}
+              </div>
             </div>
           </div>
 
