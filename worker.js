@@ -1,5 +1,7 @@
+import htmlContent from './public/index.html?raw';
+
 export async function onRequest(context) {
-  const { request, next } = context;
+  const { request } = context;
   const url = new URL(request.url);
 
   // Endpoint para llamadas a la API de Claude
@@ -68,6 +70,9 @@ export async function onRequest(context) {
     }
   }
 
-  // Para todo lo demás (archivos estáticos), dejar que Cloudflare maneje
-  return next();
+  // Servir index.html para cualquier otra ruta
+  return new Response(htmlContent, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+  });
 }
