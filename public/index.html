@@ -398,6 +398,10 @@
       configDialog: false,
       documentViewer: null,
       apiKey: localStorage.getItem('anthropic_api_key') || '',
+      editClientDialog: false,
+      editingClient: null,
+      editCaseDialog: false,
+      editingCase: null,
       data: JSON.parse(JSON.stringify(mockData))
     };
 
@@ -434,6 +438,21 @@
     window.deleteClient = function(clientId) {
       window.state.data.clientes = window.state.data.clientes.filter(c => c.id !== clientId);
       setState({ selectedClient: null });
+    };
+
+    window.updateClient = function(clientId, clientData) {
+      const index = window.state.data.clientes.findIndex(c => c.id === clientId);
+      if (index !== -1) {
+        window.state.data.clientes[index] = {
+          ...window.state.data.clientes[index],
+          name: clientData.name,
+          email: clientData.email,
+          phone: clientData.phone,
+          dni: clientData.dni,
+          cuil: clientData.cuil
+        };
+      }
+      setState({ editClientDialog: false, editingClient: null });
     };
 
     window.addCase = function(caseData) {
@@ -543,6 +562,7 @@
         ${state.selectedExpediente ? renderExpedienteModal() : ''}
         ${state.activePromptDialog ? renderPromptDialog() : ''}
         ${state.newClientDialog ? renderNewClientDialog() : ''}
+        ${state.editClientDialog ? renderEditClientDialog() : ''}
         ${state.newCaseDialog ? renderNewCaseDialog() : ''}
         ${state.newExpedienteDialog ? renderNewExpedienteDialog() : ''}
         ${state.newLegalDocDialog ? renderNewLegalDocDialog() : ''}
@@ -637,7 +657,7 @@
         </div>
 
         <div class="grid">
-          ${clientesFiltrados.length > 0 ? clientesFiltrados.map(c => `<div class="card" onclick="setState({selectedClient: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><div class="card-title">${c.name}</div><div class="card-meta">Email: ${c.email}</div><div class="card-meta">Teléfono: ${c.phone}</div><div style="margin-top: 12px; color: #d4af37; font-weight: 600;">${c.casos} caso(s)</div></div>`).join('') : '<div style="grid-column: 1/-1; text-align: center; color: #7f8c8d; padding: 40px;">No se encontraron clientes</div>'}
+          ${clientesFiltrados.length > 0 ? clientesFiltrados.map(c => `<div class="card"><div onclick="setState({selectedClient: ${JSON.stringify(c).replace(/"/g, '&quot;')}})" style="cursor: pointer;"><div class="card-title">${c.name}</div><div class="card-meta">Email: ${c.email}</div><div class="card-meta">Teléfono: ${c.phone}</div><div style="margin-top: 12px; color: #d4af37; font-weight: 600;">${c.casos} caso(s)</div></div><div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px;"><button class="btn btn-secondary" onclick="setState({editingClient: ${JSON.stringify(c).replace(/"/g, '&quot;')}, editClientDialog: true})" style="flex: 1; padding: 8px; font-size: 12px;">Editar</button><button class="btn btn-secondary" onclick="if(confirm('¿Eliminar cliente ${c.name}?')) window.deleteClient(${c.id})" style="flex: 1; padding: 8px; font-size: 12px; color: #e74c3c;">Eliminar</button></div></div>`).join('') : '<div style="grid-column: 1/-1; text-align: center; color: #7f8c8d; padding: 40px;">No se encontraron clientes</div>'}
         </div>
       `;
     }
@@ -1015,8 +1035,8 @@
             <div style="display: flex; flex-direction: column; padding: 24px; overflow-y: auto; background: #f8f9fa;">
               <h3 style="margin: 0 0 16px 0; color: #2c5aa0; font-size: 14px;">📁 Documentos del Caso</h3>
               <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 20px;">
-                ${mockData.documentos.filter(d => d.caseId === c.id).length > 0 ?
-                  mockData.documentos.filter(d => d.caseId === c.id).map(doc =>
+                ${state.data.documentos.filter(d => d.caseId === c.id).length > 0 ?
+                  state.data.documentos.filter(d => d.caseId === c.id).map(doc =>
                     '<div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border-radius: 6px; cursor: pointer; border: 1px solid #e0e0e0;" onclick="setState({documentViewer: {name: \'' + doc.name + '\', type: \'' + doc.type + '\', url: \'' + doc.url + '\'}})">' +
                     '<div style="font-size: 20px;">' + (doc.type === 'PDF' ? '📄' : doc.type === 'JPG' ? '🖼️' : '📋') + '</div>' +
                     '<div style="flex: 1; min-width: 0;">' +
@@ -1562,6 +1582,71 @@
       `;
     }
 
+    function renderEditClientDialog() {
+      const c = window.state.editingClient;
+      if (!c) return '';
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({editClientDialog: false, editingClient: null})">
+          <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="margin: 0; color: #2c5aa0;">Editar Cliente</h2>
+              <button class="close-btn" onclick="setState({editClientDialog: false, editingClient: null})">✕</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">NOMBRE</label>
+                <input type="text" id="editClientName" placeholder="Roberto" value="${(c.name.split(' ')[0] || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">APELLIDO</label>
+                <input type="text" id="editClientLastName" placeholder="García Pérez" value="${(c.name.split(' ').slice(1).join(' ') || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">EMAIL</label>
+                <input type="email" id="editClientEmail" placeholder="roberto@gmail.com" value="${c.email.replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">TELÉFONO</label>
+                <input type="tel" id="editClientPhone" placeholder="+54 2652 123456" value="${c.phone.replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">DNI</label>
+                <input type="text" id="editClientDni" placeholder="23.456.789" value="${(c.dni || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">CUIT/CUIL</label>
+                <input type="text" id="editClientCuil" placeholder="23-45678900-1" value="${(c.cuil || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-primary" onclick="
+                const name = document.getElementById('editClientName').value.trim();
+                const lastName = document.getElementById('editClientLastName').value.trim();
+                const email = document.getElementById('editClientEmail').value.trim();
+                const phone = document.getElementById('editClientPhone').value.trim();
+                const dni = document.getElementById('editClientDni').value.trim();
+                const cuil = document.getElementById('editClientCuil').value.trim();
+                if (!name || !email || !phone) {
+                  alert('Complete los campos requeridos: Nombre, Email, Teléfono');
+                  return;
+                }
+                window.updateClient(${c.id}, {
+                  name: name + (lastName ? ' ' + lastName : ''),
+                  email: email,
+                  phone: phone,
+                  dni: dni,
+                  cuil: cuil
+                });
+              " style="flex: 1; padding: 12px;">Guardar Cambios</button>
+              <button class="btn btn-secondary" onclick="setState({editClientDialog: false, editingClient: null})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderNewCaseDialog() {
       return `
         <div class="modal" onclick="if(event.target === this) setState({newCaseDialog: false})">
@@ -1581,7 +1666,7 @@
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">CLIENTE</label>
                 <select style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
                   <option>Seleccionar cliente...</option>
-                  ${mockData.clientes.map(c => `<option>${c.name}</option>`).join('')}
+                  ${state.data.clientes.map(c => `<option>${c.name}</option>`).join('')}
                 </select>
               </div>
 
@@ -1666,7 +1751,7 @@
               <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Caso Asociado</label>
               <select style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; background: white; color: #2c3e50;">
                 <option>Seleccionar caso...</option>
-                ${mockData.casos.map(c => `<option>${c.titulo}</option>`).join('')}
+                ${state.data.casos.map(c => `<option>${c.titulo}</option>`).join('')}
               </select>
             </div>
 
