@@ -1,7 +1,5 @@
-﻿const htmlContent = \$escaped\;
-
-export async function onRequest(context) {
-  const { request } = context;
+﻿export async function onRequest(context) {
+  const { request, next } = context;
   const url = new URL(request.url);
 
   if (url.pathname === '/api/chat' && request.method === 'POST') {
@@ -25,5 +23,5 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
   }
-  return new Response(htmlContent, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return next();
 }
