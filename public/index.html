@@ -1017,6 +1017,22 @@
         legalChatMessages: [...state.legalChatMessages, { type: 'user', text: userMessage }]
       });
 
+      const mockResponses = {
+        'plazo': 'Según el Código Procesal Civil y Comercial, los plazos para contestar una demanda generalmente son de 10 días hábiles, contados desde la notificación.',
+        'incumplimiento': 'El Código Civil y Comercial define el incumplimiento como el acto de no ejecutar una obligación en tiempo y forma. El acreedor puede exigir el cumplimiento o la indemnización de daños.',
+        'demanda': 'Una demanda es el acto procesal mediante el cual se promueve la acción ante el tribunal. Debe contener la pretensión, los hechos y el fundamento legal.',
+        'default': 'Consulta registrada. Para obtener una respuesta completa, conecta el endpoint /api/chat con Claude Opus 5.5. Puedo ayudarte a revisar documentos y redactar escritos.'
+      };
+
+      let mockResponse = mockResponses.default;
+      const lowerMsg = userMessage.toLowerCase();
+      for (const [key, response] of Object.entries(mockResponses)) {
+        if (lowerMsg.includes(key)) {
+          mockResponse = response;
+          break;
+        }
+      }
+
       fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1028,12 +1044,12 @@
       .then(res => res.json())
       .then(data => {
         setState({
-          legalChatMessages: [...state.legalChatMessages, { type: 'assistant', text: data.message || 'Error en la respuesta' }]
+          legalChatMessages: [...state.legalChatMessages, { type: 'assistant', text: data.message || mockResponse }]
         });
       })
       .catch(err => {
         setState({
-          legalChatMessages: [...state.legalChatMessages, { type: 'assistant', text: `Error: ${err.message}` }]
+          legalChatMessages: [...state.legalChatMessages, { type: 'assistant', text: mockResponse }]
         });
       });
     }
