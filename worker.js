@@ -1106,6 +1106,24 @@ const html = `<!doctype html>
                 }
               </div>
 
+              <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0 0 12px 0; color: #2c5aa0;">Tareas Pendientes</h3>
+                \${state.data.tareas.filter(t => t.expediente && state.data.expedientes.some(e => e.titulo === t.expediente && e.caso === state.selectedCase.titulo)).length > 0 ?
+                  \`<div style="display: flex; flex-direction: column; gap: 8px;">
+                    \${state.data.tareas.filter(t => t.expediente && state.data.expedientes.some(e => e.titulo === t.expediente && e.caso === state.selectedCase.titulo) && t.estado !== 'completada').map(t => \`
+                      <div style="padding: 10px; background: \${t.prioridad === 'alta' ? '#ffe8e8' : '#f8f9fa'}; border-radius: 6px; border-left: 3px solid \${t.prioridad === 'alta' ? '#e74c3c' : '#d4af37'};">
+                        <div style="font-weight: 600; font-size: 13px; color: #2c3e50;">\${t.titulo}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">
+                          Vencimiento: \${t.fechaLimite}
+                          \${t.prioridad === 'alta' ? '<span style="margin-left: 8px; color: #e74c3c; font-weight: 700;">⚠️ ALTA</span>' : ''}
+                        </div>
+                      </div>
+                    \`).join('')}
+                  </div>\`
+                  : \`<div style="font-size: 12px; color: #7f8c8d; padding: 12px; background: white; border-radius: 6px;">Sin tareas pendientes</div>\`
+                }
+              </div>
+
               <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; text-align: center;">
                 <p style="margin: 0; color: #7f8c8d; font-size: 13px;">💬 El chat con IA está en la vista de <strong>Caso Completo</strong></p>
                 <p style="margin: 8px 0 0 0; color: #95a5a6; font-size: 11px;">Haz click en "Ir al caso completo" para acceder al chat</p>
