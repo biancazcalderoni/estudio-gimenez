@@ -298,9 +298,9 @@
   <script>
     const mockData = {
       clientes: [
-        { id: 1, name: 'Roberto García Pérez', email: 'roberto@gmail.com', phone: '+54 2652 123456', casos: 2, fecha: '2026-09-15', archivos: ['Contrato.pdf', 'Demanda.pdf', 'Sentencia.pdf'] },
-        { id: 2, name: 'Empresa López SRL', email: 'contacto@lopez.com.ar', phone: '+54 2652 654321', casos: 3, fecha: '2026-10-22', archivos: ['Acta.pdf', 'Resolución.pdf', 'Correspondencia.pdf', 'Informe.pdf'] },
-        { id: 3, name: 'Mariana Fernández', email: 'mariana.f@hotmail.com', phone: '+54 2652 789123', casos: 1, fecha: '2026-11-10', archivos: ['Denuncia.pdf', 'Declaración.pdf'] }
+        { id: 1, name: 'Roberto García Pérez', email: 'roberto@gmail.com', phone: '+54 2652 123456', casos: 2, fecha: '2026-09-15', archivos: ['Contrato.pdf', 'Demanda.pdf', 'Sentencia.pdf'], dni: '45.678.901', cuil: '27-45678901-2' },
+        { id: 2, name: 'Empresa López SRL', email: 'contacto@lopez.com.ar', phone: '+54 2652 654321', casos: 3, fecha: '2026-10-22', archivos: ['Acta.pdf', 'Resolución.pdf', 'Correspondencia.pdf', 'Informe.pdf'], cuit: '30-71234567-5' },
+        { id: 3, name: 'Mariana Fernández', email: 'mariana.f@hotmail.com', phone: '+54 2652 789123', casos: 1, fecha: '2026-11-10', archivos: ['Denuncia.pdf', 'Declaración.pdf'], dni: '38.456.789' }
       ],
       casos: [
         { id: 1, titulo: 'García vs. López', cliente: 'Roberto García Pérez', tipo: 'Civil', fuero: 'civil', estado: 'activo', fecha: '15/11/2026' },
@@ -397,7 +397,8 @@
       formData: {},
       configDialog: false,
       documentViewer: null,
-      apiKey: localStorage.getItem('anthropic_api_key') || ''
+      apiKey: localStorage.getItem('anthropic_api_key') || '',
+      data: JSON.parse(JSON.stringify(mockData))
     };
 
     const mockCitas = [
@@ -410,6 +411,49 @@
     window.setState = function(updates) {
       window.state = { ...window.state, ...updates };
       render();
+    };
+
+    window.addClient = function(clientData) {
+      const newId = Math.max(...window.state.data.clientes.map(c => c.id), 0) + 1;
+      const newClient = {
+        id: newId,
+        name: clientData.name,
+        email: clientData.email,
+        phone: clientData.phone,
+        dni: clientData.dni,
+        cuil: clientData.cuil,
+        cuit: clientData.cuit,
+        casos: 0,
+        fecha: new Date().toISOString().split('T')[0],
+        archivos: []
+      };
+      window.state.data.clientes.push(newClient);
+      setState({ newClientDialog: false });
+    };
+
+    window.deleteClient = function(clientId) {
+      window.state.data.clientes = window.state.data.clientes.filter(c => c.id !== clientId);
+      setState({ selectedClient: null });
+    };
+
+    window.addCase = function(caseData) {
+      const newId = Math.max(...window.state.data.casos.map(c => c.id), 0) + 1;
+      const newCase = {
+        id: newId,
+        titulo: caseData.titulo,
+        cliente: caseData.cliente,
+        tipo: caseData.tipo,
+        fuero: caseData.fuero,
+        estado: 'activo',
+        fecha: new Date().toISOString().split('T')[0].replace(/-/g, '/')
+      };
+      window.state.data.casos.push(newCase);
+      setState({ newCaseDialog: false });
+    };
+
+    window.deleteCase = function(caseId) {
+      window.state.data.casos = window.state.data.casos.filter(c => c.id !== caseId);
+      setState({ selectedCase: null });
     };
 
     function render() {
@@ -512,10 +556,10 @@
       const proximaCita = mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha))[0];
       const fechaFormato = new Date(proximaCita.fecha).toLocaleDateString('es-AR', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
 
-      const totalCobrado = mockData.finanzas.filter(f => f.estado === 'cobrado').reduce((sum, f) => sum + f.monto, 0);
-      const totalPendiente = mockData.finanzas.filter(f => f.estado === 'pendiente').reduce((sum, f) => sum + f.monto, 0);
-      const tareasActivas = mockData.tareas.filter(t => t.estado !== 'completada').length;
-      const expedienteTotal = mockData.expedientes.length;
+      const totalCobrado = state.data.finanzas.filter(f => f.estado === 'cobrado').reduce((sum, f) => sum + f.monto, 0);
+      const totalPendiente = state.data.finanzas.filter(f => f.estado === 'pendiente').reduce((sum, f) => sum + f.monto, 0);
+      const tareasActivas = state.data.tareas.filter(t => t.estado !== 'completada').length;
+      const expedienteTotal = state.data.expedientes.length;
 
       return `
         <div style="margin-bottom: 24px;">
@@ -542,8 +586,8 @@
         </div>
 
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-          <div class="card"><div class="card-title">Casos Activos</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${mockData.casos.length}</div></div>
-          <div class="card"><div class="card-title">Clientes</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${mockData.clientes.length}</div></div>
+          <div class="card"><div class="card-title">Casos Activos</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${state.data.casos.length}</div></div>
+          <div class="card"><div class="card-title">Clientes</div><div style="font-size: 32px; font-weight: 700; color: #d4af37; margin: 12px 0;">${state.data.clientes.length}</div></div>
           <div class="card"><div class="card-title">Expedientes</div><div style="font-size: 32px; font-weight: 700; color: #3498db; margin: 12px 0;">${expedienteTotal}</div></div>
           <div class="card"><div class="card-title">Tareas Pendientes</div><div style="font-size: 32px; font-weight: 700; color: #e74c3c; margin: 12px 0;">${tareasActivas}</div></div>
           <div class="card"><div class="card-title">Cobrado</div><div style="font-size: 32px; font-weight: 700; color: #27ae60; margin: 12px 0;">$${totalCobrado.toLocaleString()}</div></div>
@@ -555,7 +599,7 @@
           <table class="table">
             <thead><tr><th>Caso</th><th>Cliente</th><th>Tipo</th><th>Estado</th></tr></thead>
             <tbody>
-              ${mockData.casos.slice(0, 3).map(c => `<tr onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><td style="font-weight: 600; cursor: pointer;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : 'pending'}">${c.estado}</span></td></tr>`).join('')}
+              ${state.data.casos.slice(0, 3).map(c => `<tr onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><td style="font-weight: 600; cursor: pointer;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : 'pending'}">${c.estado}</span></td></tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -563,7 +607,7 @@
     }
 
     function renderClientes() {
-      let clientesFiltrados = mockData.clientes.filter(c => c.name.toLowerCase().includes(state.searchClients.toLowerCase()));
+      let clientesFiltrados = state.data.clientes.filter(c => c.name.toLowerCase().includes(state.searchClients.toLowerCase()));
 
       if (state.sortClients === 'recent') {
         clientesFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -600,16 +644,15 @@
 
     function renderCasos() {
       const getFueroColor = (fuero) => fuero === 'penal' ? '#e74c3c' : fuero === 'administrativo' ? '#27ae60' : '#3498db';
-      const getFueroEmoji = (fuero) => fuero === 'penal' ? '🚔' : fuero === 'administrativo' ? '📋' : '⚖️';
 
-      let casosFiltrados = mockData.casos;
+      let casosFiltrados = state.data.casos;
       if (state.filtroFueroCasos) {
         casosFiltrados = casosFiltrados.filter(c => c.fuero === state.filtroFueroCasos);
       }
 
       return `
         <div style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn ${!state.filtroFueroCasos ? 'btn-primary' : 'btn-secondary'}" onclick="setState({filtroFueroCasos: null})" style="padding: 10px 16px; font-size: 12px;">Todos (${mockData.casos.length})</button>
+          <button class="btn ${!state.filtroFueroCasos ? 'btn-primary' : 'btn-secondary'}" onclick="setState({filtroFueroCasos: null})" style="padding: 10px 16px; font-size: 12px;">Todos (${state.data.casos.length})</button>
           <button class="btn ${state.filtroFueroCasos === 'civil' ? 'btn-primary' : 'btn-secondary'}" onclick="setState({filtroFueroCasos: 'civil'})" style="padding: 10px 16px; font-size: 12px;">Civil</button>
           <button class="btn ${state.filtroFueroCasos === 'penal' ? 'btn-primary' : 'btn-secondary'}" onclick="setState({filtroFueroCasos: 'penal'})" style="padding: 10px 16px; font-size: 12px;">Penal</button>
           <button class="btn ${state.filtroFueroCasos === 'administrativo' ? 'btn-primary' : 'btn-secondary'}" onclick="setState({filtroFueroCasos: 'administrativo'})" style="padding: 10px 16px; font-size: 12px;">Administrativo</button>
@@ -627,7 +670,7 @@
     function renderExpedientes() {
       return `
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
-          ${mockData.expedientes.map(exp => `
+          ${state.data.expedientes.map(exp => `
             <div class="card" style="cursor: pointer;" onclick="setState({selectedExpediente: ${JSON.stringify(exp).replace(/"/g, '&quot;')}})">
               <div class="card-title">${exp.titulo}</div>
               <div class="card-meta">Caso: ${exp.caso}</div>
@@ -663,7 +706,7 @@
               </tr>
             </thead>
             <tbody>
-              ${mockData.tareas.map(tarea => `
+              ${state.data.tareas.map(tarea => `
                 <tr style="cursor: pointer;" onclick="setState({selectedTarea: ${JSON.stringify(tarea).replace(/"/g, '&quot;')}})">
                   <td style="font-weight: 600;">${tarea.titulo}</td>
                   <td>${tarea.expediente}</td>
@@ -680,8 +723,8 @@
     }
 
     function renderFinanzas() {
-      const totalCobrado = mockData.finanzas.filter(f => f.estado === 'cobrado').reduce((sum, f) => sum + f.monto, 0);
-      const totalPendiente = mockData.finanzas.filter(f => f.estado === 'pendiente').reduce((sum, f) => sum + f.monto, 0);
+      const totalCobrado = state.data.finanzas.filter(f => f.estado === 'cobrado').reduce((sum, f) => sum + f.monto, 0);
+      const totalPendiente = state.data.finanzas.filter(f => f.estado === 'pendiente').reduce((sum, f) => sum + f.monto, 0);
       const total = totalCobrado + totalPendiente;
       const porcentajeCobrado = ((totalCobrado / total) * 100).toFixed(1);
 
@@ -749,7 +792,7 @@
               </tr>
             </thead>
             <tbody>
-              ${mockData.finanzas.map(mov => `
+              ${state.data.finanzas.map(mov => `
                 <tr>
                   <td style="font-weight: 600;">${mov.cliente}</td>
                   <td>${mov.caso}</td>
@@ -777,7 +820,7 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;">
-              ${mockData.baseLegal.map((doc, i) => `
+              ${state.data.baseLegal.map((doc, i) => `
                 <div style="padding: 12px; background: ${i === 0 ? '#e8f4f8' : '#f8f9fa'}; border-radius: 6px; border-left: 3px solid ${i === 0 ? '#2c5aa0' : '#d4af37'}; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#e8f4f8'" onmouseout="this.style.background='${i === 0 ? '#e8f4f8' : '#f8f9fa'}'">
                   <div style="font-weight: 600; font-size: 12px; color: #2c3e50; margin-bottom: 4px;">${doc.titulo}</div>
                   <div style="font-size: 11px; color: #7f8c8d;">
@@ -1401,34 +1444,34 @@
         <div class="modal" onclick="if(event.target === this) setState({newClientDialog: false})">
           <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-              <h2 style="margin: 0; color: #2c5aa0;">➕ Nuevo Cliente</h2>
+              <h2 style="margin: 0; color: #2c5aa0;">+ Nuevo Cliente</h2>
               <button class="close-btn" onclick="setState({newClientDialog: false})">✕</button>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">NOMBRE</label>
-                <input type="text" placeholder="Roberto" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="text" id="clientName" placeholder="Roberto" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">APELLIDO</label>
-                <input type="text" placeholder="García Pérez" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="text" id="clientLastName" placeholder="García Pérez" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">EMAIL</label>
-                <input type="email" placeholder="roberto@gmail.com" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="email" id="clientEmail" placeholder="roberto@gmail.com" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">WHATSAPP</label>
-                <input type="tel" placeholder="+54 2652 123456" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="tel" id="clientPhone" placeholder="+54 2652 123456" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">DNI</label>
-                <input type="text" placeholder="23.456.789" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="text" id="clientDni" placeholder="23.456.789" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">CUIT/CUIL</label>
-                <input type="text" placeholder="23-45678900-1" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                <input type="text" id="clientCuil" placeholder="23-45678900-1" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
               </div>
               <div>
                 <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">FECHA DE NACIMIENTO</label>
@@ -1493,7 +1536,25 @@
             </div>
 
             <div style="display: flex; gap: 12px;">
-              <button class="btn btn-primary" onclick="alert('✅ Cliente creado (conectar BD)'); setState({newClientDialog: false})" style="flex: 1; padding: 12px;">✅ Crear Cliente</button>
+              <button class="btn btn-primary" onclick="
+                const name = document.getElementById('clientName').value.trim();
+                const lastName = document.getElementById('clientLastName').value.trim();
+                const email = document.getElementById('clientEmail').value.trim();
+                const phone = document.getElementById('clientPhone').value.trim();
+                const dni = document.getElementById('clientDni').value.trim();
+                const cuil = document.getElementById('clientCuil').value.trim();
+                if (!name || !email || !phone) {
+                  alert('Complete los campos requeridos: Nombre, Email, Teléfono');
+                  return;
+                }
+                window.addClient({
+                  name: name + (lastName ? ' ' + lastName : ''),
+                  email: email,
+                  phone: phone,
+                  dni: dni,
+                  cuil: cuil
+                });
+              " style="flex: 1; padding: 12px;">Crear Cliente</button>
               <button class="btn btn-secondary" onclick="setState({newClientDialog: false})" style="flex: 1; padding: 12px;">Cancelar</button>
             </div>
           </div>
