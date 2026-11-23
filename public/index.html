@@ -404,6 +404,9 @@
       editingCase: null,
       editExpedienteDialog: false,
       editingExpediente: null,
+      newTareaDialog: false,
+      editTareaDialog: false,
+      editingTarea: null,
       data: JSON.parse(JSON.stringify(mockData))
     };
 
@@ -536,6 +539,42 @@
       setState({ editExpedienteDialog: false, editingExpediente: null });
     };
 
+    window.addTarea = function(tareaData) {
+      const newId = Math.max(...window.state.data.tareas.map(t => t.id), 0) + 1;
+      const newTarea = {
+        id: newId,
+        titulo: tareaData.titulo,
+        descripción: tareaData.descripción,
+        responsable: tareaData.responsable,
+        caso_id: tareaData.caso_id,
+        estado: 'pendiente',
+        fechaLimite: tareaData.fechaLimite,
+        prioridad: tareaData.prioridad
+      };
+      window.state.data.tareas.push(newTarea);
+      setState({ newTareaDialog: false });
+    };
+
+    window.deleteTarea = function(tareaId) {
+      window.state.data.tareas = window.state.data.tareas.filter(t => t.id !== tareaId);
+    };
+
+    window.updateTarea = function(tareaId, tareaData) {
+      const index = window.state.data.tareas.findIndex(t => t.id === tareaId);
+      if (index !== -1) {
+        window.state.data.tareas[index] = {
+          ...window.state.data.tareas[index],
+          titulo: tareaData.titulo,
+          descripción: tareaData.descripción,
+          responsable: tareaData.responsable,
+          estado: tareaData.estado,
+          fechaLimite: tareaData.fechaLimite,
+          prioridad: tareaData.prioridad
+        };
+      }
+      setState({ editTareaDialog: false, editingTarea: null });
+    };
+
     function render() {
       const root = document.getElementById('root');
       const state = window.state;
@@ -628,6 +667,8 @@
         ${state.editCaseDialog ? renderEditCaseDialog() : ''}
         ${state.newExpedienteDialog ? renderNewExpedienteDialog() : ''}
         ${state.editExpedienteDialog ? renderEditExpedienteDialog() : ''}
+        ${state.newTareaDialog ? renderNewTareaDialog() : ''}
+        ${state.editTareaDialog ? renderEditTareaDialog() : ''}
         ${state.newLegalDocDialog ? renderNewLegalDocDialog() : ''}
         ${state.configDialog ? renderConfigDialog() : ''}
         ${state.monthlyReportDialog ? renderMonthlyReportDialog() : ''}
@@ -782,27 +823,30 @@
       const getNombreResponsable = (resp) => resp === 'juan' ? 'Juan Manuel' : 'Fabián';
 
       return `
+        <div style="margin-bottom: 20px;">
+          <button class="btn btn-primary" onclick="setState({newTareaDialog: true})" style="margin-bottom: 20px;">+ Nueva Tarea</button>
+        </div>
         <div>
           <table class="table" style="margin-bottom: 20px;">
             <thead>
               <tr>
                 <th>Tarea</th>
-                <th>Expediente</th>
                 <th>Responsable</th>
                 <th>Fecha Límite</th>
                 <th>Prioridad</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               ${state.data.tareas.map(tarea => `
-                <tr style="cursor: pointer;" onclick="setState({selectedTarea: ${JSON.stringify(tarea).replace(/"/g, '&quot;')}})">
+                <tr>
                   <td style="font-weight: 600;">${tarea.titulo}</td>
-                  <td>${tarea.expediente}</td>
                   <td><span style="display: inline-block; padding: 4px 8px; background: #e8f4f8; border-radius: 4px; font-size: 12px; font-weight: 600;">${getNombreResponsable(tarea.responsable)}</span></td>
                   <td>${tarea.fechaLimite}</td>
                   <td><span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: ${tarea.prioridad === 'alta' ? '#ffe8e8' : '#fff4e8'}; color: ${tarea.prioridad === 'alta' ? '#c0392b' : '#d68910'};"><strong>${tarea.prioridad.charAt(0).toUpperCase() + tarea.prioridad.slice(1)}</strong></span></td>
                   <td><span class="badge" style="background: ${getEstadoColor(tarea.estado)}; color: white;">${tarea.estado}</span></td>
+                  <td><button class="btn btn-secondary" onclick="setState({editingTarea: ${JSON.stringify(tarea).replace(/"/g, '&quot;')}, editTareaDialog: true})" style="padding: 6px 10px; font-size: 11px; margin-right: 4px;">Editar</button><button class="btn btn-secondary" onclick="if(confirm('¿Eliminar tarea?')) window.deleteTarea(${tarea.id}); render();" style="padding: 6px 10px; font-size: 11px; color: #e74c3c;">Eliminar</button></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2110,6 +2154,155 @@
                 });
               " style="flex: 1; padding: 12px;">Crear Expediente</button>
               <button class="btn btn-secondary" onclick="setState({newExpedienteDialog: false})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderNewTareaDialog() {
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({newTareaDialog: false})">
+          <div style="background: white; border-radius: 12px; padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="margin: 0; color: #2c5aa0;">Nueva Tarea</h2>
+              <button class="close-btn" onclick="setState({newTareaDialog: false})">✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">TÍTULO</label>
+                <input type="text" id="newTarTitle" placeholder="Redactar demanda" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">DESCRIPCIÓN</label>
+                <textarea id="newTarDesc" placeholder="Detalles de la tarea" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; height: 80px; resize: vertical;"></textarea>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">RESPONSABLE</label>
+                  <select id="newTarResp" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option value="juan">Juan Manuel</option>
+                    <option value="fabian">Fabián</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">PRIORIDAD</label>
+                  <select id="newTarPrio" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option value="baja">Baja</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">FECHA LÍMITE</label>
+                <input type="date" id="newTarDate" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-primary" onclick="
+                const title = document.getElementById('newTarTitle').value.trim();
+                const desc = document.getElementById('newTarDesc').value.trim();
+                const resp = document.getElementById('newTarResp').value;
+                const prio = document.getElementById('newTarPrio').value;
+                const date = document.getElementById('newTarDate').value;
+                if (!title || !date) {
+                  alert('Complete los campos requeridos');
+                  return;
+                }
+                window.addTarea({
+                  titulo: title,
+                  descripción: desc,
+                  responsable: resp,
+                  caso_id: null,
+                  fechaLimite: date,
+                  prioridad: prio
+                });
+              " style="flex: 1; padding: 12px;">Crear Tarea</button>
+              <button class="btn btn-secondary" onclick="setState({newTareaDialog: false})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEditTareaDialog() {
+      const tar = window.state.editingTarea;
+      if (!tar) return '';
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({editTareaDialog: false, editingTarea: null})">
+          <div style="background: white; border-radius: 12px; padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="margin: 0; color: #2c5aa0;">Editar Tarea</h2>
+              <button class="close-btn" onclick="setState({editTareaDialog: false, editingTarea: null})">✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">TÍTULO</label>
+                <input type="text" id="editTarTitle" value="${tar.titulo.replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">DESCRIPCIÓN</label>
+                <textarea id="editTarDesc" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; height: 80px; resize: vertical;">${(tar.descripción || '').replace(/"/g, '&quot;')}</textarea>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">RESPONSABLE</label>
+                  <select id="editTarResp" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option value="juan" ${tar.responsable === 'juan' ? 'selected' : ''}>Juan Manuel</option>
+                    <option value="fabian" ${tar.responsable === 'fabian' ? 'selected' : ''}>Fabián</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">PRIORIDAD</label>
+                  <select id="editTarPrio" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option value="baja" ${tar.prioridad === 'baja' ? 'selected' : ''}>Baja</option>
+                    <option value="media" ${tar.prioridad === 'media' ? 'selected' : ''}>Media</option>
+                    <option value="alta" ${tar.prioridad === 'alta' ? 'selected' : ''}>Alta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">ESTADO</label>
+                <select id="editTarState" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                  <option value="pendiente" ${tar.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                  <option value="en progreso" ${tar.estado === 'en progreso' ? 'selected' : ''}>En Progreso</option>
+                  <option value="completada" ${tar.estado === 'completada' ? 'selected' : ''}>Completada</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">FECHA LÍMITE</label>
+                <input type="date" id="editTarDate" value="${tar.fechaLimite}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-primary" onclick="
+                const title = document.getElementById('editTarTitle').value.trim();
+                const desc = document.getElementById('editTarDesc').value.trim();
+                const resp = document.getElementById('editTarResp').value;
+                const prio = document.getElementById('editTarPrio').value;
+                const state = document.getElementById('editTarState').value;
+                const date = document.getElementById('editTarDate').value;
+                if (!title || !date) {
+                  alert('Complete los campos requeridos');
+                  return;
+                }
+                window.updateTarea(${tar.id}, { titulo: title, descripción: desc, responsable: resp, prioridad: prio, estado: state, fechaLimite: date });
+              " style="flex: 1; padding: 12px;">Guardar Cambios</button>
+              <button class="btn btn-secondary" onclick="setState({editTareaDialog: false, editingTarea: null})" style="flex: 1; padding: 12px;">Cancelar</button>
             </div>
           </div>
         </div>
