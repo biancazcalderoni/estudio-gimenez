@@ -958,6 +958,21 @@
                 <p style="margin: 0; line-height: 1.6; color: #555;">Demanda por ${state.selectedCase.tipo.toLowerCase()} - ${state.selectedCase.titulo}. Cliente: ${state.selectedCase.cliente}. Estado: ${state.selectedCase.estado}.</p>
               </div>
 
+              <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0 0 12px 0; color: #2c5aa0;">Expedientes del Caso</h3>
+                ${state.data.expedientes.filter(e => e.caso === state.selectedCase.titulo).length > 0 ?
+                  `<div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${state.data.expedientes.filter(e => e.caso === state.selectedCase.titulo).map(e => `
+                      <div style="padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #d4af37; cursor: pointer;" onclick="setState({selectedExpediente: ${JSON.stringify(e).replace(/"/g, '&quot;')}, selectedCase: null})">
+                        <div style="font-weight: 600; font-size: 13px; color: #2c3e50;">${e.titulo}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">Número: ${e.numero || 'N/A'}</div>
+                      </div>
+                    `).join('')}
+                  </div>`
+                  : '<div style="font-size: 12px; color: #7f8c8d; padding: 12px; background: white; border-radius: 6px;">Sin expedientes asociados</div>
+                }
+              </div>
+
               <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; text-align: center;">
                 <p style="margin: 0; color: #7f8c8d; font-size: 13px;">💬 El chat con IA está en la vista de <strong>Caso Completo</strong></p>
                 <p style="margin: 8px 0 0 0; color: #95a5a6; font-size: 11px;">Haz click en "Ir al caso completo" para acceder al chat</p>
@@ -1234,7 +1249,23 @@
               </div>
 
               <div style="margin-bottom: 24px;">
-                <h3 style="color: #2c5aa0; margin-bottom: 12px; font-size: 14px;">📁 ARCHIVOS DEL CLIENTE</h3>
+                <h3 style="color: #2c5aa0; margin-bottom: 12px; font-size: 14px;">CASOS RELACIONADOS</h3>
+                ${state.data.casos.filter(c => c.cliente === state.selectedClient.name).length > 0 ?
+                  `<div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${state.data.casos.filter(c => c.cliente === state.selectedClient.name).map(c => `
+                      <div style="padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #2c5aa0; cursor: pointer;" onclick="setState({selectedClient: null, selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})">
+                        <div style="font-weight: 600; font-size: 13px; color: #2c3e50;">${c.titulo}</div>
+                        <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">${c.tipo} • ${c.fuero}</div>
+                        <div style="font-size: 11px; margin-top: 4px;"><span class="badge badge-${c.estado === 'activo' ? 'active' : 'pending'}" style="font-size: 10px;">${c.estado}</span></div>
+                      </div>
+                    `).join('')}
+                  </div>`
+                  : '<div style="font-size: 12px; color: #7f8c8d; padding: 12px; background: #f8f9fa; border-radius: 6px;">Sin casos asociados</div>
+                }
+              </div>
+
+              <div style="margin-bottom: 24px;">
+                <h3 style="color: #2c5aa0; margin-bottom: 12px; font-size: 14px;">ARCHIVOS DEL CLIENTE</h3>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                   ${state.selectedClient.archivos.map(archivo => `<div style="padding: 10px 12px; background: #f8f9fa; border-radius: 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                     <span>📄 ${archivo}</span>
