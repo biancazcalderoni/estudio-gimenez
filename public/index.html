@@ -402,6 +402,8 @@
       editingClient: null,
       editCaseDialog: false,
       editingCase: null,
+      editExpedienteDialog: false,
+      editingExpediente: null,
       data: JSON.parse(JSON.stringify(mockData))
     };
 
@@ -488,6 +490,50 @@
         };
       }
       setState({ editCaseDialog: false, editingCase: null });
+    };
+
+    window.addExpediente = function(expData) {
+      const newId = Math.max(...window.state.data.expedientes.map(e => e.id), 0) + 1;
+      const newExpediente = {
+        id: newId,
+        titulo: expData.titulo,
+        numero: expData.numero,
+        caso: expData.caso,
+        cliente: expData.cliente,
+        juzgado: expData.juzgado,
+        juez: expData.juez,
+        estado: 'activo',
+        fecha_inicio: new Date().toISOString().split('T')[0],
+        próxima_audiencia: expData.próxima_audiencia,
+        demandante: { nombre: expData.demandante || '', cuil: '', dni: '', domicilio: '' },
+        demandado: { nombre: expData.demandado || '', cuil: '', cuit: '', domicilio: '' },
+        testigos: [],
+        pliegos: [],
+        historial: []
+      };
+      window.state.data.expedientes.push(newExpediente);
+      setState({ newExpedienteDialog: false });
+    };
+
+    window.deleteExpediente = function(expedienteId) {
+      window.state.data.expedientes = window.state.data.expedientes.filter(e => e.id !== expedienteId);
+      setState({ selectedExpediente: null });
+    };
+
+    window.updateExpediente = function(expedienteId, expData) {
+      const index = window.state.data.expedientes.findIndex(e => e.id === expedienteId);
+      if (index !== -1) {
+        window.state.data.expedientes[index] = {
+          ...window.state.data.expedientes[index],
+          titulo: expData.titulo,
+          numero: expData.numero,
+          juzgado: expData.juzgado,
+          juez: expData.juez,
+          estado: expData.estado,
+          próxima_audiencia: expData.próxima_audiencia
+        };
+      }
+      setState({ editExpedienteDialog: false, editingExpediente: null });
     };
 
     function render() {
@@ -581,6 +627,7 @@
         ${state.newCaseDialog ? renderNewCaseDialog() : ''}
         ${state.editCaseDialog ? renderEditCaseDialog() : ''}
         ${state.newExpedienteDialog ? renderNewExpedienteDialog() : ''}
+        ${state.editExpedienteDialog ? renderEditExpedienteDialog() : ''}
         ${state.newLegalDocDialog ? renderNewLegalDocDialog() : ''}
         ${state.configDialog ? renderConfigDialog() : ''}
         ${state.monthlyReportDialog ? renderMonthlyReportDialog() : ''}
@@ -707,16 +754,22 @@
       return `
         <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
           ${state.data.expedientes.map(exp => `
-            <div class="card" style="cursor: pointer;" onclick="setState({selectedExpediente: ${JSON.stringify(exp).replace(/"/g, '&quot;')}})">
-              <div class="card-title">${exp.titulo}</div>
-              <div class="card-meta">Caso: ${exp.caso}</div>
-              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
-                <div style="font-size: 12px; font-weight: 600; color: #2c5aa0; margin-bottom: 4px;">PARTES</div>
-                <div style="font-size: 12px; color: #555;">Demandante: ${exp.demandante.nombre}</div>
-                <div style="font-size: 12px; color: #555;">Demandado: ${exp.demandado.nombre}</div>
+            <div class="card">
+              <div onclick="setState({selectedExpediente: ${JSON.stringify(exp).replace(/"/g, '&quot;')}})" style="cursor: pointer;">
+                <div class="card-title">${exp.titulo}</div>
+                <div class="card-meta">Caso: ${exp.caso}</div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+                  <div style="font-size: 12px; font-weight: 600; color: #2c5aa0; margin-bottom: 4px;">PARTES</div>
+                  <div style="font-size: 12px; color: #555;">Demandante: ${exp.demandante.nombre}</div>
+                  <div style="font-size: 12px; color: #555;">Demandado: ${exp.demandado.nombre}</div>
+                </div>
+                <div style="margin-top: 12px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #7f8c8d;">${exp.testigos.length} testigo(s) • ${exp.pliegos.length} pregunta(s)</div>
+                </div>
               </div>
-              <div style="margin-top: 12px;">
-                <div style="font-size: 11px; font-weight: 600; color: #7f8c8d;">${exp.testigos.length} testigo(s) • ${exp.pliegos.length} pregunta(s)</div>
+              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="setState({editingExpediente: ${JSON.stringify(exp).replace(/"/g, '&quot;')}, editExpedienteDialog: true})" style="flex: 1; padding: 8px; font-size: 12px;">Editar</button>
+                <button class="btn btn-secondary" onclick="if(confirm('¿Eliminar expediente ${exp.titulo}?')) window.deleteExpediente(${exp.id})" style="flex: 1; padding: 8px; font-size: 12px; color: #e74c3c;">Eliminar</button>
               </div>
             </div>
           `).join('')}
@@ -1858,6 +1911,74 @@
       }
     }
 
+    function renderEditExpedienteDialog() {
+      const exp = window.state.editingExpediente;
+      if (!exp) return '';
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({editExpedienteDialog: false, editingExpediente: null})">
+          <div style="background: white; border-radius: 12px; padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="margin: 0; color: #2c5aa0;">Editar Expediente</h2>
+              <button class="close-btn" onclick="setState({editExpedienteDialog: false, editingExpediente: null})">✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">TÍTULO</label>
+                <input type="text" id="editExpTitulo" value="${exp.titulo.replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">NÚMERO</label>
+                <input type="text" id="editExpNumero" value="${(exp.numero || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">JUZGADO</label>
+                <input type="text" id="editExpJuzgado" value="${(exp.juzgado || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">JUEZ</label>
+                <input type="text" id="editExpJuez" value="${(exp.juez || '').replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">PRÓXIMA AUDIENCIA</label>
+                <input type="date" id="editExpAudiencia" value="${(exp.próxima_audiencia || '').substring(0, 10)}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">ESTADO</label>
+                <select id="editExpEstado" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                  <option ${exp.estado === 'activo' ? 'selected' : ''}>activo</option>
+                  <option ${exp.estado === 'cerrado' ? 'selected' : ''}>cerrado</option>
+                  <option ${exp.estado === 'suspendido' ? 'selected' : ''}>suspendido</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-primary" onclick="
+                const titulo = document.getElementById('editExpTitulo').value.trim();
+                const numero = document.getElementById('editExpNumero').value.trim();
+                const juzgado = document.getElementById('editExpJuzgado').value.trim();
+                const juez = document.getElementById('editExpJuez').value.trim();
+                const audiencia = document.getElementById('editExpAudiencia').value;
+                const estado = document.getElementById('editExpEstado').value;
+                if (!titulo || !numero) {
+                  alert('Complete los campos requeridos');
+                  return;
+                }
+                window.updateExpediente(${exp.id}, { titulo, numero, juzgado, juez, próxima_audiencia: audiencia, estado });
+              " style="flex: 1; padding: 12px;">Guardar Cambios</button>
+              <button class="btn btn-secondary" onclick="setState({editExpedienteDialog: false, editingExpediente: null})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderNewExpedienteDialog() {
       return `
         <div class="modal" onclick="if(event.target === this) setState({newExpedienteDialog: false})">
@@ -1868,17 +1989,41 @@
             </div>
 
             <!-- DATOS BÁSICOS -->
-            <div style="margin-bottom: 24px;">
-              <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Nombre del Expediente</label>
-              <input type="text" placeholder="Ej: García vs. López - Expediente 2026-001" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Nombre del Expediente</label>
+                <input type="text" id="newExpTitulo" placeholder="Ej: García vs. López - Expediente 2026-001" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Número de Expediente</label>
+                <input type="text" id="newExpNumero" placeholder="2026-001" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+              </div>
             </div>
 
             <div style="margin-bottom: 24px;">
               <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Caso Asociado</label>
-              <select style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; background: white; color: #2c3e50;">
-                <option>Seleccionar caso...</option>
-                ${state.data.casos.map(c => `<option>${c.titulo}</option>`).join('')}
+              <select id="newExpCaso" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; background: white; color: #2c3e50;">
+                <option value="">Seleccionar caso...</option>
+                ${state.data.casos.map(c => `<option value="${c.titulo}">${c.titulo}</option>`).join('')}
               </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Juzgado</label>
+                <input type="text" id="newExpJuzgado" placeholder="Juzgado Civil N° 3" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Juez</label>
+                <input type="text" id="newExpJuez" placeholder="Nombre del juez" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+              <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px; text-transform: uppercase;">Próxima Audiencia</label>
+              <input type="date" id="newExpAudiencia" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
@@ -1946,7 +2091,24 @@
             </div>
 
             <div style="display: flex; gap: 12px;">
-              <button class="btn btn-primary" onclick="setState({newExpedienteDialog: false}); alert('✅ Expediente creado')" style="flex: 1; padding: 12px;">📋 Crear Expediente</button>
+              <button class="btn btn-primary" onclick="
+                const titulo = document.getElementById('newExpTitulo').value.trim();
+                const numero = document.getElementById('newExpNumero').value.trim();
+                const caso = document.getElementById('newExpCaso').value;
+                const juzgado = document.getElementById('newExpJuzgado').value.trim();
+                const juez = document.getElementById('newExpJuez').value.trim();
+                const audiencia = document.getElementById('newExpAudiencia').value;
+                if (!titulo || !numero || !caso) {
+                  alert('Complete los campos requeridos');
+                  return;
+                }
+                window.addExpediente({
+                  titulo, numero, caso, juzgado, juez,
+                  próxima_audiencia: audiencia,
+                  demandante: 'Por definir',
+                  demandado: 'Por definir'
+                });
+              " style="flex: 1; padding: 12px;">Crear Expediente</button>
               <button class="btn btn-secondary" onclick="setState({newExpedienteDialog: false})" style="flex: 1; padding: 12px;">Cancelar</button>
             </div>
           </div>
