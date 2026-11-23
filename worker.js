@@ -1310,51 +1310,107 @@ const html = `<!doctype html>
 
       const citasHoy = mockCitas.filter(c => c.fecha.includes(\`\${String(state.currentMonth + 1).padStart(2, '0')}\`));
 
+      // 7-day view starting from today
+      const horas = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+      const getDayName = (d) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][d.getDay()];
+      const sevenDays = Array.from({length: 7}, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        return d;
+      });
+
       return \`
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-          <div>
+        <div>
+          <div style="margin-bottom: 24px;">
             <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0; color: #2c5aa0;">\${months[state.currentMonth]} \${state.currentYear}</h2>
-                <div style="display: flex; gap: 8px;">
-                  <button class="btn btn-secondary" onclick="setState({currentMonth: (state.currentMonth - 1 + 12) % 12, currentYear: state.currentMonth === 0 ? state.currentYear - 1 : state.currentYear})" style="padding: 6px 10px;">◀</button>
-                  <button class="btn btn-secondary" onclick="setState({currentMonth: (state.currentMonth + 1) % 12, currentYear: state.currentMonth === 11 ? state.currentYear + 1 : state.currentYear})" style="padding: 6px 10px;">▶</button>
-                </div>
+              <h2 style="margin: 0 0 20px 0; color: #2c5aa0; font-size: 18px;">📅 Vista de 7 Días</h2>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #e0e0e0;">
+                      <th style="padding: 12px; text-align: left; color: #7f8c8d; font-weight: 600;">Hora</th>
+                      \${sevenDays.map(d => \`
+                        <th style="padding: 12px; text-align: center; color: #2c3e50; font-weight: 600;">
+                          <div>\${getDayName(d)}</div>
+                          <div style="font-size: 12px; color: #7f8c8d; margin-top: 2px;">\${d.getDate()}/\${String(d.getMonth() + 1).padStart(2, '0')}</div>
+                        </th>
+                      \`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    \${horas.map(hora => \`
+                      <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 12px; color: #7f8c8d; font-size: 12px; font-weight: 600;">\${hora}</td>
+                        \${sevenDays.map(d => {
+                          const dateStr = \\\`\\\${d.getFullYear()}-\\\${String(d.getMonth() + 1).padStart(2, '0')}-\\\${String(d.getDate()).padStart(2, '0')}\\\`;
+                          const citasEnHora = mockCitas.filter(c => c.fecha === dateStr && c.hora === hora);
+                          return \\\`
+                            <td style="padding: 8px; text-align: center; background: \\\${citasEnHora.length > 0 ? '#ffe8e8' : '#f8f9fa'};">
+                              \\\${citasEnHora.map(cita => \\\`
+                                <div style="padding: 8px; background: #e74c3c; color: white; border-radius: 4px; font-size: 11px; font-weight: 600; margin-bottom: 4px; cursor: pointer;" onclick="alert('Caso: \\\${cita.caso}\\\\\\\\nTipo: \\\${cita.tipo}\\\\\\\\nLugar: \\\${cita.lugar}')">
+                                  \\\${cita.tipo.substring(0, 3)}
+                                </div>
+                              \\\`).join('')}
+                            </td>
+                          \\\`;
+                        }).join('')}
+                      </tr>
+                    \`).join('')}
+                  </tbody>
+                </table>
               </div>
-
-              <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px;">
-                \${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => \`<div style="text-align: center; font-weight: 600; color: #7f8c8d; font-size: 12px; padding: 8px;">\${d}</div>\`).join('')}
-                \${daysCells.map(day => day ? \`<div style="text-align: center; padding: 12px; background: \${new Date().getDate() === day ? '#d4af37' : '#f8f9fa'}; border-radius: 6px; cursor: pointer; font-weight: \${new Date().getDate() === day ? '700' : '500'}; color: \${new Date().getDate() === day ? '#fff' : '#2c3e50'};">\${day}</div>\` : \`<div></div>\`).join('')}
-              </div>
-
-              <div style="border-top: 2px solid #e0e0e0; padding-top: 20px;">
-                <h3 style="margin: 0 0 12px 0; color: #2c5aa0; font-size: 14px;">Conectar con Calendly</h3>
-                <button class="btn btn-primary" onclick="setState({calendlyConnected: !state.calendlyConnected})" style="width: 100%; padding: 12px;">
-                  \${state.calendlyConnected ? '✅ Conectado con Calendly' : '🔗 Conectar Calendly'}
-                </button>
-                <div style="font-size: 12px; color: #7f8c8d; margin-top: 8px;">Sincroniza automáticamente tus citas de Calendly</div>
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #7f8c8d;">
+                <span style="display: inline-block; width: 12px; height: 12px; background: #e74c3c; border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                Citas programadas • 🔴 Urgentes (<7 días)
               </div>
             </div>
           </div>
 
-          <div>
-            <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-              <h2 style="margin: 0 0 20px 0; color: #2c5aa0; font-size: 16px;">Próximas Citas</h2>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
-                \${mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 6).map(cita => {
-                  const daysUntil = Math.ceil((new Date(cita.fecha) - new Date()) / (1000 * 60 * 60 * 24));
-                  const isUrgent = daysUntil < 7 && daysUntil >= 0;
-                  return \`
-                    <div style="padding: 12px; background: \${isUrgent ? '#ffe8e8' : '#f8f9fa'}; border-left: 3px solid \${isUrgent ? '#e74c3c' : '#d4af37'}; border-radius: 6px;">
-                      <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
-                        \${new Date(cita.fecha).toLocaleDateString('es-AR', {weekday: 'short', month: 'short', day: 'numeric'})} • \${cita.hora}
-                        \${isUrgent ? \`<span style="margin-left: 8px; font-size: 11px; color: #e74c3c; font-weight: 700;">URGENTE</span>\` : ''}
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div>
+              <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h2 style="margin: 0; color: #2c5aa0;">\${months[state.currentMonth]} \${state.currentYear}</h2>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="setState({currentMonth: (state.currentMonth - 1 + 12) % 12, currentYear: state.currentMonth === 0 ? state.currentYear - 1 : state.currentYear})" style="padding: 6px 10px;">◀</button>
+                    <button class="btn btn-secondary" onclick="setState({currentMonth: (state.currentMonth + 1) % 12, currentYear: state.currentMonth === 11 ? state.currentYear + 1 : state.currentYear})" style="padding: 6px 10px;">▶</button>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px;">
+                  \${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => \\\`<div style="text-align: center; font-weight: 600; color: #7f8c8d; font-size: 12px; padding: 8px;">\\\${d}</div>\\\`).join('')}
+                  \${daysCells.map(day => day ? \\\`<div style="text-align: center; padding: 12px; background: \\\${new Date().getDate() === day ? '#d4af37' : '#f8f9fa'}; border-radius: 6px; cursor: pointer; font-weight: \\\${new Date().getDate() === day ? '700' : '500'}; color: \\\${new Date().getDate() === day ? '#fff' : '#2c3e50'};\\">\\\${day}</div>\\\` : \\\`<div></div>\\\`).join('')}
+                </div>
+
+                <div style="border-top: 2px solid #e0e0e0; padding-top: 20px;">
+                  <h3 style="margin: 0 0 12px 0; color: #2c5aa0; font-size: 14px;">Conectar con Calendly</h3>
+                  <button class="btn btn-primary" onclick="setState({calendlyConnected: !state.calendlyConnected})" style="width: 100%; padding: 12px;">
+                    \${state.calendlyConnected ? '✅ Conectado con Calendly' : '🔗 Conectar Calendly'}
+                  </button>
+                  <div style="font-size: 12px; color: #7f8c8d; margin-top: 8px;">Sincroniza automáticamente tus citas de Calendly</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h2 style="margin: 0 0 20px 0; color: #2c5aa0; font-size: 16px;">Próximas Citas</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  \${mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 6).map(cita => {
+                    const daysUntil = Math.ceil((new Date(cita.fecha) - new Date()) / (1000 * 60 * 60 * 24));
+                    const isUrgent = daysUntil < 7 && daysUntil >= 0;
+                    return \\\`
+                      <div style="padding: 12px; background: \\\${isUrgent ? '#ffe8e8' : '#f8f9fa'}; border-left: 3px solid \\\${isUrgent ? '#e74c3c' : '#d4af37'}; border-radius: 6px;">
+                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+                          \\\${new Date(cita.fecha).toLocaleDateString('es-AR', {weekday: 'short', month: 'short', day: 'numeric'})} • \\\${cita.hora}
+                          \\\${isUrgent ? \\\`<span style="margin-left: 8px; font-size: 11px; color: #e74c3c; font-weight: 700;">URGENTE</span>\\\` : ''}
+                        </div>
+                        <div style="font-size: 13px; color: #2c5aa0; font-weight: 500; margin-bottom: 2px;">\\\${cita.caso}</div>
+                        <div style="font-size: 12px; color: #7f8c8d;">\\\${cita.tipo} • \\\${cita.lugar}</div>
                       </div>
-                      <div style="font-size: 13px; color: #2c5aa0; font-weight: 500; margin-bottom: 2px;">\${cita.caso}</div>
-                      <div style="font-size: 12px; color: #7f8c8d;">\${cita.tipo} • \${cita.lugar}</div>
-                    </div>
-                  \`;
-                }).join('')}
+                    \\\`;
+                  }).join('')}
+                </div>
               </div>
             </div>
           </div>
