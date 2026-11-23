@@ -475,6 +475,21 @@
       setState({ selectedCase: null });
     };
 
+    window.updateCase = function(caseId, caseData) {
+      const index = window.state.data.casos.findIndex(c => c.id === caseId);
+      if (index !== -1) {
+        window.state.data.casos[index] = {
+          ...window.state.data.casos[index],
+          titulo: caseData.titulo,
+          cliente: caseData.cliente,
+          tipo: caseData.tipo,
+          fuero: caseData.fuero,
+          estado: caseData.estado
+        };
+      }
+      setState({ editCaseDialog: false, editingCase: null });
+    };
+
     function render() {
       const root = document.getElementById('root');
       const state = window.state;
@@ -564,6 +579,7 @@
         ${state.newClientDialog ? renderNewClientDialog() : ''}
         ${state.editClientDialog ? renderEditClientDialog() : ''}
         ${state.newCaseDialog ? renderNewCaseDialog() : ''}
+        ${state.editCaseDialog ? renderEditCaseDialog() : ''}
         ${state.newExpedienteDialog ? renderNewExpedienteDialog() : ''}
         ${state.newLegalDocDialog ? renderNewLegalDocDialog() : ''}
         ${state.configDialog ? renderConfigDialog() : ''}
@@ -679,9 +695,9 @@
         </div>
 
         <table class="table">
-          <thead><tr><th>Caso</th><th>Cliente</th><th>Tipo</th><th>Fuero</th><th>Estado</th><th>Fecha</th></tr></thead>
+          <thead><tr><th>Caso</th><th>Cliente</th><th>Tipo</th><th>Fuero</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
           <tbody>
-            ${casosFiltrados.map(c => `<tr onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})"><td style="font-weight: 600;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${getFueroColor(c.fuero)}; color: white; font-size: 11px; font-weight: 600;">${c.fuero.charAt(0).toUpperCase() + c.fuero.slice(1)}</span></td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : c.estado === 'pending' ? 'pending' : 'active'}">${c.estado}</span></td><td>${c.fecha}</td></tr>`).join('')}
+            ${casosFiltrados.map(c => `<tr><td onclick="setState({selectedCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}})" style="font-weight: 600; cursor: pointer;">${c.titulo}</td><td>${c.cliente}</td><td>${c.tipo}</td><td><span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: ${getFueroColor(c.fuero)}; color: white; font-size: 11px; font-weight: 600;">${c.fuero.charAt(0).toUpperCase() + c.fuero.slice(1)}</span></td><td><span class="badge badge-${c.estado === 'activo' ? 'active' : c.estado === 'pending' ? 'pending' : 'active'}">${c.estado}</span></td><td>${c.fecha}</td><td><button class="btn btn-secondary" onclick="setState({editingCase: ${JSON.stringify(c).replace(/"/g, '&quot;')}, editCaseDialog: true})" style="padding: 6px 10px; font-size: 11px; margin-right: 4px;">Editar</button><button class="btn btn-secondary" onclick="if(confirm('¿Eliminar caso ${c.titulo}?')) window.deleteCase(${c.id})" style="padding: 6px 10px; font-size: 11px; color: #e74c3c;">Eliminar</button></td></tr>`).join('')}
           </tbody>
         </table>
       `;
@@ -1177,15 +1193,20 @@
             <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
               <h2 style="margin: 0 0 20px 0; color: #2c5aa0; font-size: 16px;">Próximas Citas</h2>
               <div style="display: flex; flex-direction: column; gap: 12px;">
-                ${mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 6).map(cita => `
-                  <div style="padding: 12px; background: #f8f9fa; border-left: 3px solid #d4af37; border-radius: 6px;">
-                    <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
-                      ${new Date(cita.fecha).toLocaleDateString('es-AR', {weekday: 'short', month: 'short', day: 'numeric'})} • ${cita.hora}
+                ${mockCitas.sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 6).map(cita => {
+                  const daysUntil = Math.ceil((new Date(cita.fecha) - new Date()) / (1000 * 60 * 60 * 24));
+                  const isUrgent = daysUntil < 7 && daysUntil >= 0;
+                  return `
+                    <div style="padding: 12px; background: ${isUrgent ? '#ffe8e8' : '#f8f9fa'}; border-left: 3px solid ${isUrgent ? '#e74c3c' : '#d4af37'}; border-radius: 6px;">
+                      <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">
+                        ${new Date(cita.fecha).toLocaleDateString('es-AR', {weekday: 'short', month: 'short', day: 'numeric'})} • ${cita.hora}
+                        ${isUrgent ? `<span style="margin-left: 8px; font-size: 11px; color: #e74c3c; font-weight: 700;">URGENTE</span>` : ''}
+                      </div>
+                      <div style="font-size: 13px; color: #2c5aa0; font-weight: 500; margin-bottom: 2px;">${cita.caso}</div>
+                      <div style="font-size: 12px; color: #7f8c8d;">${cita.tipo} • ${cita.lugar}</div>
                     </div>
-                    <div style="font-size: 13px; color: #2c5aa0; font-weight: 500; margin-bottom: 2px;">${cita.caso}</div>
-                    <div style="font-size: 12px; color: #7f8c8d;">${cita.tipo} • ${cita.lugar}</div>
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>
           </div>
@@ -1641,6 +1662,80 @@
                 });
               " style="flex: 1; padding: 12px;">Guardar Cambios</button>
               <button class="btn btn-secondary" onclick="setState({editClientDialog: false, editingClient: null})" style="flex: 1; padding: 12px;">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEditCaseDialog() {
+      const c = window.state.editingCase;
+      if (!c) return '';
+      return `
+        <div class="modal" onclick="if(event.target === this) setState({editCaseDialog: false, editingCase: null})">
+          <div style="background: white; border-radius: 12px; padding: 32px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+              <h2 style="margin: 0; color: #2c5aa0;">Editar Caso</h2>
+              <button class="close-btn" onclick="setState({editCaseDialog: false, editingCase: null})">✕</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px;">
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">NOMBRE DEL CASO</label>
+                <input type="text" id="editCaseTitulo" placeholder="ej: García vs. López" value="${c.titulo.replace(/"/g, '&quot;')}" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">CLIENTE</label>
+                <select id="editCaseCliente" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                  ${state.data.clientes.map(cli => `<option ${cli.name === c.cliente ? 'selected' : ''}>${cli.name}</option>`).join('')}
+                </select>
+              </div>
+
+              <div>
+                <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">TIPO DE CASO</label>
+                <select id="editCaseTipo" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                  <option ${c.tipo === 'Civil' ? 'selected' : ''}>Civil</option>
+                  <option ${c.tipo === 'Penal' ? 'selected' : ''}>Penal</option>
+                  <option ${c.tipo === 'Comercial' ? 'selected' : ''}>Comercial</option>
+                  <option ${c.tipo === 'Laboral' ? 'selected' : ''}>Laboral</option>
+                </select>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">FUERO</label>
+                  <select id="editCaseFuero" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option ${c.fuero === 'civil' ? 'selected' : ''}>civil</option>
+                    <option ${c.fuero === 'penal' ? 'selected' : ''}>penal</option>
+                    <option ${c.fuero === 'administrativo' ? 'selected' : ''}>administrativo</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 600; color: #7f8c8d; margin-bottom: 4px;">ESTADO</label>
+                  <select id="editCaseEstado" style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px;">
+                    <option ${c.estado === 'activo' ? 'selected' : ''}>activo</option>
+                    <option ${c.estado === 'pending' ? 'selected' : ''}>pending</option>
+                    <option ${c.estado === 'closed' ? 'selected' : ''}>closed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-primary" onclick="
+                const titulo = document.getElementById('editCaseTitulo').value.trim();
+                const cliente = document.getElementById('editCaseCliente').value;
+                const tipo = document.getElementById('editCaseTipo').value;
+                const fuero = document.getElementById('editCaseFuero').value;
+                const estado = document.getElementById('editCaseEstado').value;
+                if (!titulo || !cliente) {
+                  alert('Complete los campos requeridos');
+                  return;
+                }
+                window.updateCase(${c.id}, { titulo, cliente, tipo, fuero, estado });
+              " style="flex: 1; padding: 12px;">Guardar Cambios</button>
+              <button class="btn btn-secondary" onclick="setState({editCaseDialog: false, editingCase: null})" style="flex: 1; padding: 12px;">Cancelar</button>
             </div>
           </div>
         </div>
