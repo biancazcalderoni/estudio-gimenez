@@ -636,6 +636,8 @@
                 state.currentView === 'clientes' ? 'Clientes' :
                 state.currentView === 'casos' ? 'Casos' :
                 state.currentView === 'expedientes' ? 'Expedientes' :
+                state.currentView === 'tareas' ? 'Tareas' :
+                state.currentView === 'finanzas' ? 'Finanzas' :
                 state.currentView === 'baseLegal' ? 'Base Legal Argentina' :
                 'Calendario'
               }</h1>
@@ -644,6 +646,7 @@
                 ${state.currentView === 'clientes' ? `<button class="btn btn-primary" onclick="setState({newClientDialog: true})">+ Nuevo Cliente</button>` : ''}
                 ${state.currentView === 'casos' ? `<button class="btn btn-primary" onclick="setState({newCaseDialog: true})">+ Nuevo Caso</button>` : ''}
                 ${state.currentView === 'expedientes' ? `<button class="btn btn-primary" onclick="setState({newExpedienteDialog: true})">+ Nuevo Expediente</button>` : ''}
+                ${state.currentView === 'tareas' ? `<button class="btn btn-primary" onclick="setState({newTareaDialog: true})">+ Nueva Tarea</button>` : ''}
                 ${state.currentView === 'baseLegal' ? `<button class="btn btn-primary" onclick="setState({newLegalDocDialog: true})">+ Agregar Documento</button>` : ''}
               </div>
             </div>
