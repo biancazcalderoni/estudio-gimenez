@@ -9,6 +9,7 @@
     "deploy:prod": "wrangler deploy --env production"
   },
   "devDependencies": {
+    "puppeteer-core": "^23.11.1",
     "wrangler": "^4.166.0"
   }
 }

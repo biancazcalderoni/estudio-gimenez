@@ -12,4 +12,8 @@
 2. Deployar con `npx wrangler deploy`. El `[build]` de wrangler.toml corre `check-html.js`, que valida el JS y cancela el deploy si hay error. No saltear ni borrar ese control.
 3. Todo dato que escribe un usuario (nombres de archivo, clientes) se muestra con `esc()` para no romper el HTML.
 4. Después de cada cambio: deploy, abrir la URL, entrar y recorrer las secciones antes de decir "listo".
+6. Celular: lo usan desde el teléfono. Antes de deployar un cambio visual, con `npx wrangler dev --port 8799` corriendo:
+   `node tools/audit-movil.js http://127.0.0.1:8799/ <pass de .dev.vars> capturas 390` → recorre todas las secciones y modales a 390 px, saca capturas y lista lo que se sale de la pantalla. Repetir con `1280` para escritorio.
+   - En celular el menú es un cajón (☰). Las tablas `.table` se vuelven tarjetas solas (`etiquetarTablas()`): siempre con `<thead>`.
+   - Grillas inline de varias columnas pasan a 1 columna en celular; si una tiene que quedar fija (ej. calendario), ponerle `class="grilla-fija"`.
 5. Son documentos legales confidenciales: nunca sacar la contraseña ni exponer `/api/archivos` sin sesión.

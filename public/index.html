@@ -30,6 +30,7 @@
       letter-spacing: 1px;
     }
     .logo-sub {
+      padding: 0 20px;
       font-size: 11px;
       opacity: 0.8;
       margin-top: 4px;
@@ -317,11 +318,76 @@
       cursor: pointer;
     }
     .hidden { display: none; }
+    .main { min-width: 0; }
+    .topbar-movil, .menu-fondo { display: none; }
+
+    /* ================= CELULAR ================= */
     @media (max-width: 768px) {
       .app { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .modal-content { grid-template-columns: 1fr; }
-      .modal-sidebar { display: none; }
+
+      /* Barra superior con menú hamburguesa */
+      .topbar-movil { display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 900;
+        background: linear-gradient(90deg, #2c5aa0, #1f3f6b); color: white; padding: 10px 14px; }
+      .hamburguesa { background: none; border: 0; color: white; font-size: 24px; line-height: 1; padding: 6px 8px; cursor: pointer; }
+      .topbar-logo { font-weight: 700; letter-spacing: 1px; }
+
+      /* Menú lateral como cajón deslizable */
+      .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: min(280px, 82vw); z-index: 1500;
+        transform: translateX(-105%); transition: transform .2s ease; overflow-y: auto; gap: 24px; }
+      .sidebar.abierto { transform: none; }
+      .menu-fondo { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1400; }
+      .menu-item { padding: 14px 16px; font-size: 15px; }
+
+      /* Encabezado de cada sección */
+      .header { padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
+      .header h1 { font-size: 22px; }
+      .header .btn { padding: 9px 12px; }
+      .content { padding: 16px !important; }
+
+      /* Grillas fijas de 2-4 columnas → una columna (salvo el calendario mensual) */
+      .content [style*="grid-template-columns"]:not(.grilla-fija),
+      .modal [style*="grid-template-columns"]:not(.grilla-fija),
+      .caso-completo [style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+      .caso-completo { overflow-y: auto; }
+      .caso-completo > div:first-child { padding: 14px 16px !important; }
+      .caso-completo-cols { overflow: visible !important; flex: none !important; }
+      .caso-completo-cols > div { border-right: 0 !important; border-bottom: 1px solid #e0e0e0; padding: 16px !important; overflow: visible !important; }
+      .caso-completo * { max-width: 100%; }
+      .content [style*="display: flex"]:not([style*="column"]):not(.grilla-fija) { flex-wrap: wrap; }
+      .content [style*="height:"], .modal [style*="height:"] { height: auto !important; }
+      .content [style*="min-height:"], .modal [style*="min-height:"] { min-height: 0 !important; }
+      .content *, .modal * { max-width: 100%; }
+      .content img, .modal img { height: auto; }
+      input, select, textarea { font-size: 16px !important; } /* evita el zoom automático en iPhone */
+
+      /* Tablas → tarjetas */
+      table.tabla-tarjetas, table.tabla-tarjetas tbody { display: block; width: 100%; }
+      table.tabla-tarjetas thead { display: none; }
+      table.tabla-tarjetas tr { display: block; background: white; border-radius: 10px; margin-bottom: 10px; padding: 8px 14px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+      table.tabla-tarjetas td { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        padding: 7px 0 !important; border: 0 !important; text-align: right; font-size: 14px; }
+      table.tabla-tarjetas td::before { content: attr(data-label); font-size: 11px; font-weight: 600; color: #7f8c8d;
+        text-transform: uppercase; text-align: left; flex: none; }
+      table.tabla-tarjetas td[data-label=""]::before { content: none; }
+      table.tabla-tarjetas td:first-child { font-size: 15px; font-weight: 600; border-bottom: 1px solid #eef0f3 !important; padding-bottom: 9px !important; }
+      table.tabla-tarjetas td:first-child::before { content: none; }
+      table.tabla-tarjetas td:first-child { text-align: left; }
+
+      /* Ventanas (modales) a pantalla completa */
+      .modal { align-items: stretch; }
+      .modal > div { width: 100% !important; max-width: 100% !important; max-height: 100dvh !important; height: 100dvh;
+        border-radius: 0 !important; overflow-y: auto !important; }
+      .modal-content { display: block !important; }
+      .modal-body { overflow: visible !important; }
+      .modal-body, .ficha { padding: 20px 16px !important; }
+      .modal-sidebar { display: flex; border-left: 0; border-top: 1px solid #e0e0e0; overflow: visible; }
+      .close-btn { top: 10px; right: 10px; font-size: 26px; padding: 6px 10px; z-index: 5; }
+      .ficha h1 { font-size: 22px; }
+      .archivo-item { flex-wrap: wrap; }
+      .archivo-acciones { width: 100%; display: flex; justify-content: flex-end; }
+      .visor-barra { flex-wrap: wrap; padding: 10px 12px; }
+      .visor-cuerpo { padding: 0 6px 6px; }
     }
   </style>
 </head>
@@ -456,9 +522,24 @@
     ];
 
     window.setState = function(updates) {
+      // Al cambiar de sección o cerrar sesión, el menú del celular se cierra solo.
+      if ('currentView' in updates || 'currentUser' in updates) updates = { menuAbierto: false, ...updates };
       window.state = { ...window.state, ...updates };
       render();
+      etiquetarTablas();
     };
+
+    // En celular las tablas se muestran como tarjetas: cada celda lleva el nombre de su columna.
+    function etiquetarTablas() {
+      document.querySelectorAll('#root table.table').forEach(t => {
+        const cols = [...t.querySelectorAll('thead th, thead td')].map(th => th.textContent.trim());
+        if (!cols.length) return;
+        t.classList.add('tabla-tarjetas');
+        t.querySelectorAll('tbody tr').forEach(tr => {
+          [...tr.children].forEach((td, i) => { td.dataset.label = cols[i] || ''; });
+        });
+      });
+    }
 
     window.addClient = function(clientData) {
       const newId = Math.max(...window.state.data.clientes.map(c => c.id), 0) + 1;
@@ -633,8 +714,13 @@
       }
 
       root.innerHTML = `
+        <div class="topbar-movil">
+          <button class="hamburguesa" onclick="setState({menuAbierto: true})" aria-label="Abrir menú">☰</button>
+          <div class="topbar-logo">GIMENEZ</div>
+        </div>
+        ${state.menuAbierto ? `<div class="menu-fondo" onclick="setState({menuAbierto: false})"></div>` : ''}
         <div class="app">
-          <div class="sidebar">
+          <div class="sidebar ${state.menuAbierto ? 'abierto' : ''}">
             <div>
               <div class="logo">GIMENEZ</div>
               <div class="logo-sub">ESTUDIO JURÍDICO</div>
@@ -1209,7 +1295,7 @@
     function renderCaseDetail() {
       const c = state.selectedCaseDetail;
       return `
-        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 2000; display: flex; flex-direction: column;">
+        <div class="caso-completo" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 2000; display: flex; flex-direction: column;">
           <!-- HEADER -->
           <div style="background: white; border-bottom: 1px solid #e0e0e0; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center;">
             <h1 style="margin: 0; color: #2c5aa0; font-size: 24px;">${c.titulo}</h1>
@@ -1217,7 +1303,7 @@
           </div>
 
           <!-- MAIN CONTENT - 2 COLUMNS -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; flex: 1; overflow: hidden;">
+          <div class="caso-completo-cols" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; flex: 1; overflow: hidden;">
 
             <!-- IZQUIERDA: CHAT IA -->
             <div style="display: flex; flex-direction: column; border-right: 1px solid #e0e0e0; padding: 24px; overflow-y: auto;">
@@ -1428,7 +1514,7 @@
                   </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px;">
+                <div class="grilla-fija" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 20px;">
                   ${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => `<div style="text-align: center; font-weight: 600; color: #7f8c8d; font-size: 12px; padding: 8px;">${d}</div>`).join('')}
                   ${daysCells.map(day => day ? `<div style="text-align: center; padding: 12px; background: ${new Date().getDate() === day ? '#d4af37' : '#f8f9fa'}; border-radius: 6px; cursor: pointer; font-weight: ${new Date().getDate() === day ? '700' : '500'}; color: ${new Date().getDate() === day ? '#fff' : '#2c3e50'};\">${day}</div>` : `<div></div>`).join('')}
                 </div>
@@ -2713,6 +2799,7 @@
     }
 
     render();
+    etiquetarTablas();
   </script>
 </body>
 </html>
