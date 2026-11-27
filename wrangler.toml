@@ -1,3 +1,8 @@
 name = "estudio-gimenez"
 main = "worker.js"
 compatibility_date = "2024-11-01"
+
+# Antes de cada deploy/dev, wrangler corre este control + build.
+# Si public/index.html tiene un error de JavaScript, el deploy se cancela.
+[build]
+command = "node build-worker.js"
